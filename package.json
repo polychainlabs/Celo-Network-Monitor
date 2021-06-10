@@ -11,7 +11,7 @@
     "test": "ts-mocha -p tsconfig.json src/**/*.test.ts --exit"
   },
   "dependencies": {
-    "@celo/celocli": "0.0.47",
+    "@celo/celocli": "1.0.0",
     "@celo/contractkit": "0.4.2",
     "@slack/webhook": "5.0.3",
     "bignumber.js": "9.0.0",
