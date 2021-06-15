@@ -8,7 +8,6 @@ const usdBalanceCache = new Map<string, BigNumber>()
 const goldBalanceCache = new Map<string, BigNumber>()
 let lastEpoch = -1
 
-/** Monitor the CELO and cUSD balances of all addresses specified in the addresses yaml file */
 export default class MonitorBalance extends MonitorBase {
     protected async run() {
         // This is expensive. Only run once every 10 runs.
@@ -20,26 +19,26 @@ export default class MonitorBalance extends MonitorBase {
             for(const address of this.addresses.addresses().keys()) {
                 const balance = await this.kit.getTotalBalance(address)
                 // Gather Totals
-                totalGold = totalGold.plus(balance.gold)
-                totalLocked = totalLocked.plus(balance.lockedGold)
-                totalUsd = totalUsd.plus(balance.usd)
+                totalGold = totalGold.plus(balance.CELO)
+                totalLocked = totalLocked.plus(balance.lockedCELO)
+                totalUsd = totalUsd.plus(balance.cUSD)
 
                 // Record non-zero value metrics
-                const gold = weiToIntegerFloor(balance.gold)
+                const gold = weiToIntegerFloor(balance.CELO)
                 if (gold > 0) {
                     this.metrics.log("Gold", gold, this.addresses.alias(address))
                 }
-                const lockedGold = weiToIntegerFloor(balance.lockedGold)
+                const lockedGold = weiToIntegerFloor(balance.lockedCELO)
                 if (lockedGold > 0) {
                     this.metrics.log("LockedGold", lockedGold, this.addresses.alias(address))
                 }
-                const usd = weiToIntegerFloor(balance.usd)
+                const usd = weiToIntegerFloor(balance.cUSD)
                 if (usd > 0) {
                     this.metrics.log("USD", usd, this.addresses.alias(address))
                 }
                 // Monitor changing balances
-                this.monitorGoldBalanceChange(address, balance.gold.plus(balance.lockedGold))
-                this.monitorUSDBalanceChange(address, balance.usd)
+                this.monitorGoldBalanceChange(address, balance.CELO.plus(balance.lockedCELO))
+                this.monitorUSDBalanceChange(address, balance.cUSD)
             }
 
             // Record Total Metrics
@@ -62,7 +61,6 @@ export default class MonitorBalance extends MonitorBase {
         const currentEpoch = Math.floor(this.latestBlock.number / this.epochSize)
         return lastEpoch != currentEpoch
     }
-    /** Update the last epoch that was processed */
     updateEpochCache() {
         const currentEpoch = Math.floor(this.latestBlock.number / this.epochSize)
         lastEpoch = currentEpoch
@@ -71,30 +69,29 @@ export default class MonitorBalance extends MonitorBase {
     async monitorGoldBalanceChange(address:string, balance:BigNumber) {
         this.monitorBalanceChange(address, balance, goldBalanceCache, "", "cgld")
     }
-
+    
     async monitorUSDBalanceChange(address:string, balance:BigNumber) {
         this.monitorBalanceChange(address, balance, usdBalanceCache, "$", "")
     }
-    /** Monitor and record balance changes of the specified address */
     async monitorBalanceChange(address: string, balance: BigNumber, cache: Map<string, BigNumber>, currencyPrefix="", currencySuffix="") {
         if (cache.has(address)) {
             const lastBalance = cache.get(address) || new BigNumber(0)
             const minDeltaToShow = this.isProcessingEpochChange() ? new BigNumber(1e18) : new BigNumber(2e18)
-
-            // Ignore rounding errors
+            
+            // Ignore rounding errors 
             if (lastBalance.minus(balance).abs().isGreaterThan(minDeltaToShow)) {
                 const delta = lastBalance.minus(balance).abs()
                 const prettyDelta = weiToIntegerFloorCommas(delta)
                 const prettyBalance = weiToIntegerFloorCommas(balance)
                 const balanceIncreased = lastBalance.isLessThan(balance)
                 const deltaString = balanceIncreased ? "increased" : "decreased"
-
+                
                 // Record the delta metric
                 this.metrics.log(`Delta${currencyPrefix}${currencySuffix}`, weiToIntegerFloor(delta), this.addresses.alias(address))
-
+                
                 // Let us know
                 const message = `The Balance of \`${this.addresses.alias(address)}\` has` +
-                ` ${deltaString} by \`${currencyPrefix}${prettyDelta}${currencySuffix}\`` +
+                ` ${deltaString} by \`${currencyPrefix}${prettyDelta}${currencySuffix}\`` + 
                 ` to \`${currencyPrefix}${prettyBalance}${currencySuffix}\`` +
                 `${this.getEpochTransitionString()}` +
                 ` :money_with_wings: ${slackAddressDetails(address)}`
@@ -113,7 +110,6 @@ export default class MonitorBalance extends MonitorBase {
         cache.set(address, balance)
     }
 
-    /** If the epoch is transitioning, return a human friendly string that indicates as much */
     getEpochTransitionString(): string {
         if (!this.isProcessingEpochChange()) {
             return ""

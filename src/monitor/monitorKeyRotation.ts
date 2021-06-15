@@ -2,15 +2,14 @@ import { slackAddressDetails } from "./alert";
 import MonitorBase from "./monitorBase";
 import { Validator } from "@celo/contractkit/lib/wrappers/Validators";
 
-export type BlockSignatureCount = {
-    signedBlocks: number,
+export type BlockSignatureCount = { 
+    signedBlocks: number, 
     eligibleBlocks: number,
     totalBlocks: number
 }
 
 const validatorCache = new Map<string, Validator>()
 
-/** When validator keys are rotated, ensure that they are fully rotated */
 export default class MonitorKeyRotation extends MonitorBase {
 
     protected async run() {
@@ -30,13 +29,13 @@ export default class MonitorKeyRotation extends MonitorBase {
                 for(const member of group.members) {
                     const validator = await validators.getValidator(member)
                     result.push(validator)
-                }
+                } 
             }
         }
         return result
     }
 
-    /** Alert if keys are rotated, and note if successful or not */
+    /** Alert if we're about to be voted in or out of the active set */
     async alertOnRotation(validator: Validator) {
         const cached = validatorCache.get(validator.address)
         if (cached != undefined) {
@@ -53,7 +52,7 @@ export default class MonitorKeyRotation extends MonitorBase {
                 );
             } else {
                 await this.alert.slackError(
-                    `INCOMPLETE ROTATION DETECTED for` +
+                    `INCOMPLETE ROTATION DETECTED for` + 
                     ` \`${this.addresses.alias(validator.address)}\`.` +
                     ` bls rotation status: ${blsChanged},` +
                     ` ecdsa rotation status: ${ecdsaChanged}` +

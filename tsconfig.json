@@ -16,7 +16,10 @@
     "outDir": "build",
     "skipLibCheck": true,
     "isolatedModules": true,
-    "typeRoots": ["node_modules/@types"]
+    "typeRoots": ["node_modules/@types"],
+    "paths": {
+      "~/*": ["src/*"]
+    }
   },
   "include": ["src/**/*", "typings/**/*"],
   "exclude": ["node_modules"]

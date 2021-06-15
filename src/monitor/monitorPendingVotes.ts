@@ -5,7 +5,6 @@ import { weiToIntegerFloorCommas } from "./formatting";
 
 const pendingVoteCache = new Map<string, BigNumber>()
 
-/** Monitor our addresses for pending votes. Remind us to activate them. */
 export default class MonitorPendingVotes extends MonitorBase {
     protected async run() {
         const election = await this.kit.contracts.getElection();
