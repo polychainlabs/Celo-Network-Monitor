@@ -1,4 +1,4 @@
-FROM node:10 as base
+FROM node:15 as base
 # Build
 FROM base as builder
 
