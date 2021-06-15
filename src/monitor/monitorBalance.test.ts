@@ -12,7 +12,7 @@ describe('monitorBalance', function () {
       const slack = sinon.spy(args.alert, 'slack');
       const warn = sinon.spy(args.alert, 'slackWarn');
       const page = sinon.spy(args.alert, 'page');
-
+      
       const latestBlock: BlockTransactionString = {
         number: 100,
         hash: "",
@@ -35,10 +35,10 @@ describe('monitorBalance', function () {
         transactions: new Array(),
       }
       args.blocks.push(latestBlock)
-
+      
       const monitor = new MonitorBalance(args)
       const cache = new Map<string, BigNumber>()
-
+      
       // Setup
       await monitor.monitorBalanceChange("", new BigNumber(10e18), cache)
       assert(!slack.called)
@@ -62,8 +62,8 @@ describe('monitorBalance', function () {
       assert(!slack.called)
       assert(warn.called)
       assert(!page.called)
-      slack.resetHistory()
-      warn.resetHistory()
+      slack.resetHistory() 
+      warn.resetHistory() 
       page.resetHistory()
 
       // No Change
@@ -74,7 +74,7 @@ describe('monitorBalance', function () {
       slack.resetHistory()
       warn.resetHistory()
       page.resetHistory()
-
+      
       // No Tiny Change
       await monitor.monitorBalanceChange("", new BigNumber(80.1e18), cache)
       assert(!slack.called);

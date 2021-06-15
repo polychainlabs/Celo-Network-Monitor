@@ -10,7 +10,7 @@ describe('monitorKeyRotation', function () {
       const args = NewMonitorArgs()
       const slack = sinon.spy(args.alert, 'slack');
       const error = sinon.spy(args.alert, 'slackError');
-
+      
       const monitor = new MonitorKeyRotation(args)
 
       // Setup

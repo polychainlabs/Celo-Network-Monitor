@@ -1,18 +1,21 @@
 import { IncomingWebhook, IncomingWebhookSendArguments } from '@slack/webhook';
-import PagerDuty from 'node-pagerduty';
+// eslint-disable-next-line import/no-unresolved,import/extensions
+import PagerDutyAlerter from './pagerduty';
 
 export interface AlertInterface {
     slack(text: string, throttleSeconds?: number, alertKey?: string): Promise<void>
     slackWarn(text: string, throttleSeconds?: number, alertKey?: string): Promise<void>
     slackError(text: string, throttleSeconds?: number, alertKey?: string): Promise<void>
-    page(title: string, details: string, throttleSeconds: number, alertKey?: string): Promise<void>
+    page(title: string, details: string): Promise<void>
+    change(summary: string): Promise<void>
 }
 
 export class AlertTest implements AlertInterface {
-    async slack(text: string, throttleSeconds: number, alertKey?: string): Promise<void> { }
-    async slackWarn(text: string, throttleSeconds: number, alertKey?: string): Promise<void> { }
-    async slackError(text: string, throttleSeconds: number, alertKey?: string): Promise<void> { }
-    async page(title: string, details: string, throttleSeconds: number, alertKey?: string): Promise<void> { }
+    async slack(text: string, throttleSeconds: number, alertKey?: string): Promise<void> {}
+    async slackWarn(text: string, throttleSeconds: number, alertKey?: string): Promise<void> {}
+    async slackError(text: string, throttleSeconds: number, alertKey?: string): Promise<void> {}
+    async page(title: string, details: string): Promise<void> {}
+    async change(summary: string): Promise<void> {}
 }
 
 export default class Alert implements AlertInterface {
@@ -20,36 +23,31 @@ export default class Alert implements AlertInterface {
     #slackChannel: string;
     #slackThrottle: Map<string, Date>;
 
-    #pdClient: any;
-    #pdService: string;
-    #pdEmail: string;
-    #pdThrottle: Map<string, Date>;
+    #debug: boolean;
 
-    #debug: boolean
+    #pd: PagerDutyAlerter;
 
-    constructor(slackUrl: string, slackChannel: string, pdKey: string, pdService: string, pdEmail: string, debug: boolean) {
+    constructor(slackUrl: string, slackChannel: string, pdIntegrationKey: string, debug: boolean) {
         this.#slackClient = new IncomingWebhook(slackUrl);
         this.#slackChannel = slackChannel;
         this.#slackThrottle = new Map();
 
-        if (pdKey.length > 0) {
-            this.#pdClient = new PagerDuty(pdKey);
-        }
-        this.#pdService = pdService;
-        this.#pdEmail = pdEmail
-        this.#pdThrottle = new Map();
+        this.#pd = new PagerDutyAlerter(pdIntegrationKey, debug);
+        this.#debug = debug;
+    }
 
-        this.#debug = debug
+    async change(summary: string): Promise<void> {
+        await this.#pd.change(summary);
     }
 
     /** Send a slack message */
-    async slackWarn(text: string, throttleSeconds = 60, alertKey?: string): Promise<void> {
+    async slackWarn(text: string, throttleSeconds=60, alertKey?: string): Promise<void> { 
         await this.slack(":warning: " + text, throttleSeconds, alertKey)
-    }
-    async slackError(text: string, throttleSeconds = 60, alertKey?: string): Promise<void> {
+    } 
+    async slackError(text: string, throttleSeconds=60, alertKey?: string): Promise<void> { 
         await this.slack(":bangbang: " + text, throttleSeconds, alertKey)
-    }
-    async slack(text: string, throttleSeconds = 60, alertKey?: string): Promise<void> {
+    } 
+    async slack(text: string, throttleSeconds=60, alertKey?: string): Promise<void> {
         alertKey = alertKey || text;
 
         if (this.#debug) {
@@ -69,36 +67,17 @@ export default class Alert implements AlertInterface {
     }
 
     /** Page us */
-    async page(title: string, details: string, throttleSeconds = 60, alertKey?: string): Promise<void> {
-        alertKey = alertKey || title + details
-
-        if (this.#debug) {
-            console.log(`\nWOULD HAVE PAGED WITH:\n- title:${title}\n- details:${details}\n`)
-            return
-        }
-
-        if (this.shouldAlert(this.#pdThrottle, alertKey, throttleSeconds)) {
-            console.log(`Paging: ${title}`)
-            const payload = {
-                incident: {
-                    title,
-                    type: 'incident',
-                    service: {
-                        id: this.#pdService,
-                        type: 'service_reference',
-                    },
-                    body: {
-                        type: 'incident_body',
-                        details,
-                    },
-                    incident_key: alertKey,
-                },
-            };
-
-            if (this.#pdClient != undefined) {
-                await this.#pdClient.incidents.createIncident(this.#pdEmail, payload)
+    async page(title: string, details: string): Promise<void> {
+        try {
+            if (this.#debug) {
+                console.log(`\nWOULD HAVE PAGED WITH:\n- title:${title}\n- details:${details}\n`);
+                return;
             }
-            this.slackError(`Paging with title: \`${title}\``)
+            await this.#pd.page(title, details);
+            await this.slackError(`Paging with title: \`${title}\``);
+        } catch(e) {
+            this.slack(`Paging failed due to error: ${e}`, 30, "page-error")
+            throw new Error(e)
         }
     }
 
@@ -108,10 +87,10 @@ export default class Alert implements AlertInterface {
             throttle.set(key, new Date());
             return true;
         }
-
+    
         const now = new Date().getTime();
         const lastAlertTime = throttle.get(key)?.getTime() || 0;
-        const secondsSinceAlerted = (now - lastAlertTime) / 1000;
+        const secondsSinceAlerted = (now - lastAlertTime)/1000;
 
         if (secondsSinceAlerted > throttleSeconds) {
             // We've passed our throttle delay period
@@ -130,7 +109,7 @@ export function addressExplorerUrl(address: string): string {
 export function slackAddressDetails(address: string): string {
     if (isValidAddress(address)) {
         return `[<${addressExplorerUrl(address)}|Details>]`
-    }
+    } 
     return ""
 }
 /** Block Explorer Url */

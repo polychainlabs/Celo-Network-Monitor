@@ -1,6 +1,7 @@
 import fs from 'fs';
 import yaml from 'js-yaml';;
 
+
 export default class Addresses {
     #addresses: Map<string,string>
     #groups: string[]

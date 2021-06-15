@@ -1,22 +1,24 @@
-import { ContractKit } from "@celo/contractkit";
+import { ContractKit, newKitFromWeb3 } from "@celo/contractkit";
 import { AlertInterface, AlertTest } from "./alert";
-import { BlockTransactionString } from 'web3-eth/types/index'
+import { Block } from 'web3-eth/types/index'
 import Metrics from "./metrics";
 import Addresses from "./addresses";
 import Web3 from "web3";
 
 export type MonitorArgs = {
     kit: ContractKit
-    blocks: BlockTransactionString[]
+    blocks: Block[]
     alert: AlertInterface
     addresses: Addresses
     lastBlockProcessed: number
 }
 
 export function NewMonitorArgs(): MonitorArgs {
+    const web3 = new Web3();
+    web3.setProvider(new Web3.providers.HttpProvider('https://fake.url'));
     const args: MonitorArgs = {
-        kit: new ContractKit(new Web3()),
-        blocks: new Array<BlockTransactionString>(),
+        kit: newKitFromWeb3(web3),
+        blocks: new Array<Block>(),
         alert: new AlertTest(),
         addresses: new Addresses(),
         lastBlockProcessed: -1
@@ -24,16 +26,15 @@ export function NewMonitorArgs(): MonitorArgs {
     return args
 }
 
-/** Base class that all monitors derive from */
 export default abstract class MonitorBase implements MonitorArgs {
     kit: ContractKit
-    blocks: BlockTransactionString[]
+    blocks: Block[]
     alert: AlertInterface
     addresses: Addresses
     lastBlockProcessed: number
 
     protected metrics: Metrics
-    protected latestBlock: BlockTransactionString
+    protected latestBlock: Block
     protected readonly epochSize = 17280
 
     constructor(args: MonitorArgs) {
@@ -47,7 +48,6 @@ export default abstract class MonitorBase implements MonitorArgs {
         this.metrics = new Metrics(this.constructor.name)
     }
 
-    /** Main method to monitor anything specified in a subclass  */
     async monitor(): Promise<void> {
         console.log(`CeloMonitor::${this.constructor.name}() - Started`)
         const start = new Date().getTime()
@@ -58,7 +58,6 @@ export default abstract class MonitorBase implements MonitorArgs {
         console.log(`CeloMonitor::${this.constructor.name}() - Finished in ${duration}s`);
     }
 
-    /** Override this to implement monitoring logic */
     protected abstract async run(): Promise<void>
 
     /** Is this run processing a distinct epoch from the last successful run? */
@@ -85,7 +84,7 @@ export default abstract class MonitorBase implements MonitorArgs {
     }
 
     /** Do the provided blocks include an epoch transition */
-    doBlocksIncludeEpochTransition(): boolean {
+    doBlocksIncludeEpochTransision(): boolean {
         const blocksIntoEpoch = this.latestBlock.number % this.epochSize
         return this.blocks.length > blocksIntoEpoch
     }

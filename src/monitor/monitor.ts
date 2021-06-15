@@ -1,6 +1,6 @@
 import Alert from "./alert";
 import MonitorNode from "./monitorNode";
-import KitProvider from "../kitProvider";
+import KitProvider from "~/kitProvider";
 import MonitorBalance from "./monitorBalance";
 import MonitorValidators from "./monitorValidators";
 import MonitorElectabilityThreshold from "./monitorElectabilityThreshold";
@@ -8,7 +8,7 @@ import MonitorGovernance from "./monitorGovernance";
 import MonitorPendingVotes from "./monitorPendingVotes";
 import MonitorTobinTax from "./monitorTobinTax";
 import MonitorVoteCapacity from "./monitorVoteCapacity";
-import { BlockTransactionString } from 'web3-eth/types/index'
+import { Block } from 'web3-eth/types/index'
 import { concurrentMap } from '@celo/utils/lib/async'
 import { ContractKit } from "@celo/contractkit";
 import Addresses from "./addresses";
@@ -26,15 +26,13 @@ export default class CeloMonitor {
     #debug: boolean
     #lastBlockProcessed: number = -1
 
-    constructor(provider: KitProvider, addressFile: string, blocksToScan: number, debug: boolean) {
+    constructor(provider: KitProvider, addressFile:string, blocksToScan: number, debug: boolean) {
         this.#provider = provider;
         this.#blocksToScan = blocksToScan
         this.#alert = new Alert(
             process.env.SLACK_URL || "",
             process.env.SLACK_CHANNEL || "",
-            process.env.PD_KEY || "",
-            process.env.PD_SERVICE || "",
-            process.env.PD_EMAIL || "",
+            process.env.PD_INTEGRATION_KEY || "",
             debug
         );
         this.#addresses = new Addresses(addressFile)
@@ -48,7 +46,7 @@ export default class CeloMonitor {
         console.log(`CeloMonitor() - Running`);
         const start = new Date().getTime()
         // Load vars
-        const kit = this.#provider.getKit()
+        const kit = await this.#provider.getKit()
         const args: MonitorArgs = {
             kit: kit,
             lastBlockProcessed: this.#lastBlockProcessed,
@@ -85,28 +83,28 @@ export default class CeloMonitor {
         }
 
         // Record Processing
-        this.#lastBlockProcessed = args.blocks[args.blocks.length - 1].number
+        this.#lastBlockProcessed = args.blocks[args.blocks.length-1].number
 
         // Print runtime
-        const duration = Math.floor(new Date().getTime() - start) / 1000;
+        const duration = Math.floor(new Date().getTime() - start)/1000;
         console.log(`CeloMonitor() - Finished in ${duration}s`);
     }
 
     async runParallel(monitors: MonitorBase[]) {
         const promises = Array<Promise<void>>()
-        for (const m of monitors) { promises.push(m.monitor()) }
+        for(const m of monitors) { promises.push(m.monitor()) }
         await Promise.all(promises)
     }
 
     async runSerial(monitors: MonitorBase[]) {
-        for (const m of monitors) { await m.monitor() }
+        for(const m of monitors) { await m.monitor() }
     }
 
     /** Get the most recent #blocksToScan blocks */
-    async getBlocks(kit: ContractKit): Promise<BlockTransactionString[]> {
-        const latestBlock = await kit.web3.eth.getBlock('latest')
+    async getBlocks(kit: ContractKit): Promise<Block[]> {
+        const latestBlock = await kit.connection.getBlock('latest')
         return await concurrentMap(10, [...Array(this.#blocksToScan).keys()], (i) =>
-            kit.web3.eth.getBlock(latestBlock.number - this.#blocksToScan + i + 1)
+            kit.connection.getBlock(latestBlock.number - this.#blocksToScan + i + 1)
         )
     }
 }

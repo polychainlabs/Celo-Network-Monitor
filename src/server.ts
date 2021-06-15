@@ -1,4 +1,4 @@
-import http from "http";
+﻿import http from "http";
 import CeloMonitor from "./monitor/monitor";
 
 export async function startBackgroundServer(m:CeloMonitor) {
@@ -11,4 +11,4 @@ export async function startBackgroundServer(m:CeloMonitor) {
     const port = process.env.PORT || 8080;
     server.listen(process.env.PORT || 8080);
     console.log(`Serving on: ${port}`)
-}
+  }

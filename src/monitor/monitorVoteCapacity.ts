@@ -5,7 +5,6 @@ import { slackAddressDetails } from "./alert";
 
 const voteCache = new Map<string,BigNumber>()
 
-/** Monitor our used and free capacity to validate on behalf of votes */
 export default class MonitorVoteCapacity extends MonitorBase {
     protected async run() {
         const election = await this.kit.contracts.getElection()

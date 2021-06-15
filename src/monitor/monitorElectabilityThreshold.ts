@@ -1,8 +1,8 @@
 import MonitorBase from "./monitorBase";
 
-/** Monitor the threshold of votes needed to get elected */
 export default class MonitorElectabilityThreshold extends MonitorBase {
     protected async run() {
+        // const validators = await kit.contracts.getValidators()
         const election = await this.kit.contracts.getElection()
         const electabilityThreshold = (await election.electabilityThreshold()).toNumber()
         this.metrics.log("ElectabilityThreshold", electabilityThreshold)

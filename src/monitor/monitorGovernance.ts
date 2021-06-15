@@ -3,10 +3,8 @@ import { GovernanceWrapper } from '@celo/contractkit/lib/wrappers/Governance';
 import BigNumber from 'bignumber.js';
 import { getLocalTimeString } from "./formatting";
 
-/** Monitor the network for governance activity */
 export default class MonitorGovernance extends MonitorBase {
-
-  protected async run() {
+  protected async run() { 
     const governance = await this.kit.contracts.getGovernance()
     const queue = await governance.getQueue()
     for(const proposal of queue) {
@@ -33,9 +31,9 @@ export default class MonitorGovernance extends MonitorBase {
 
       const msg = `Proposal \`${id}\` is in stage: \`${stage}\`. ` +
                   `${this.getReferendumString(referendum)} ` +
-                  `${this.getExecutionString(execution)} ` +
+                  `${this.getExecutionString(execution)} ` + 
                   `[<${url}|Info>]`
-
+      
       await this.alert.slack(
         msg,
         24*60*60,
@@ -55,12 +53,10 @@ export default class MonitorGovernance extends MonitorBase {
     }
     return "Voting has begun."
   }
-
   getExecutionString(execution: Date) : string {
     if (this.isInPast(execution)) {
       return `Execution can occur after \`${getLocalTimeString(execution, "dddd M/D, h:mma zz")}\``
     }
     return "Execution milestone passed."
   }
-
 }
