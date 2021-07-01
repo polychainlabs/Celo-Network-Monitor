@@ -1,4 +1,4 @@
-FROM node:15 as base
+FROM node:16-buster-slim as base
 # Build
 FROM base as builder
 
